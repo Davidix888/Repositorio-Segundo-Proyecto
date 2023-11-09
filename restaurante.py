@@ -1,8 +1,6 @@
-bandera = 0
+import queue
 from time import sleep
 from os import system
-import queue
-
 class Menus:
     def __init__(self):
         self.pila = []
@@ -27,8 +25,7 @@ class Menus:
     def menus_iniciales(self):
         menu1 = {"Nombre": "Combo #1", "Complementos": "Hamburguesa, papas fritas, refresco", "Precio": 50}
         menu2 = {"Nombre": "Combo #2", "Complementos": "Pizza, ensalada, agua", "Precio": 40}
-        menu3 = {"Nombre": "Combo #3", "Complementos": "Sándwich, aros de cebolla, batido", "Precio": 45}
-        self.pila.extend([menu1, menu2, menu3])
+        self.pila.extend([menu1, menu2])
         print("Se han añadido los menús predeterminados.")
 
 
@@ -56,6 +53,8 @@ class Menus:
                 case '4':
                     print("Saliendo de las opciones del menu")
                     break
+                case _:
+                    print("No ingreso una opcion valida")
             
 class Pedidos:
     def __init__(self):
@@ -148,48 +147,220 @@ class Pedidos:
                 case _:
                     print('No ingresaste una opción válida')
 
-menu = Menus()
-pedido1 = Pedidos()
-while bandera == 0:
-    print("BIENVENIDO AL RESTAURANTE")
-    print("1. Ver menu")
-    print("2. Ver Pedidos")
-    print("3. Pagar")
-    print("4. Inicio de Sesion")
-    print("5. Salir")
-    opcion = input("Seleccione una opcion: ")
-    match opcion:
-        case '1':
-            menu.mostrar_menu()
-        case '2':
-            pedido1.mostrar_pedidos()
-        case '4':
-            usuario = input("Ingrese su usuario: ")
-            contra = input("Ingrese su contraseña: ")
-            if usuario == "admin" and contra == "admin":
-                while True:
-                    print("BIENVENIDO AL MENU DEL ADMINISTRADOR")
-                    print("1. Ver todas las opciones del menu")
-                    print("2. Ver todas las opciones de pedidos")
-                    print("3. Salir")
+class Usuario:
+    def __init__(self, nombre, correo, direccion, tarjeta_credito, fecha_tarjeta, cvv):
+        self.nombre = nombre
+        self.correo = correo
+        self.direccion = direccion
+        self.tarjeta_credito = tarjeta_credito
+        self.fecha_tarjeta = fecha_tarjeta
+        self.cvv = cvv
+
+class SistemaFacturacion:
+    def __init__(self):
+        self.usuarios = {}
+        self.facturas = {}
+
+    def registrar_usuario(self):
+        nombre = input("Ingrese su nombre: ")
+        correo = input("Ingrese su correo electrónico: ")
+        direccion = input("Ingrese su dirección de facturación: ")
+        
+       
+        while True:
+            tarjeta_credito = input("Ingrese su número de tarjeta de crédito | Formato (XXXX-XXXX-XXXX-XXXX): ")
+            tarjeta_credito = tarjeta_credito.replace("-", "")  
+            if len(tarjeta_credito) >= 13 and len(tarjeta_credito) <= 16 and tarjeta_credito.isdigit():
+                break
+            else:
+                print("Número de tarjeta inválido, Ingrese entre 13 y 16 dígitos, separado con guiones")
+        
+        
+        fecha_tarjeta = input("Ingrese la fecha de vencimiento de su tarjeta (MM/YY): ")
+        cvv = input("Ingrese el CVV de su tarjeta: ")
+
+        
+        usuario = Usuario(nombre, correo, direccion, tarjeta_credito, fecha_tarjeta, cvv)
+        self.usuarios[correo] = usuario
+        print(f"Usuario {nombre} registrado exitosamente.")
+
+    def generar_factura(self, correo_usuario, total):
+        if correo_usuario in self.usuarios:
+            usuario = self.usuarios[correo_usuario]
+            numero_factura = len(self.facturas) + 1
+            
+            
+            tarjeta_oculta = "X" * (len(usuario.tarjeta_credito) - 4) + usuario.tarjeta_credito[-4:]
+            
+            self.facturas[numero_factura] = {
+                'cliente': usuario.nombre,
+                'total': total,
+                'direccion': usuario.direccion,
+                'correo': usuario.correo,
+                'tarjeta_credito': tarjeta_oculta,  
+            }
+
+            nombre_archivo = input("Ingrese el nombre para el archivo de texto (sin extensión): ")
+            nombre_archivo_txt = f'{nombre_archivo}.txt'
+
+            contenido = f"Restaurante: Fast Food - Proyecto\n"
+            contenido += f"Cliente: {usuario.nombre}\n"
+            contenido += f"Correo: {usuario.correo}\n"
+            contenido += f"Dirección: {usuario.direccion}\n"
+            contenido += f"Total: {total}\n"
+            contenido += f"Tarjeta de Crédito: XXXX-XXXX-XXXX-{usuario.tarjeta_credito[-4:]}\n"  
+
+            with open(nombre_archivo_txt, 'w') as archivo_txt:
+                archivo_txt.write(contenido)
+
+            print(f"Factura generada para el usuario {usuario.nombre}, número de factura: {numero_factura}")
+            print(f"El archivo de texto '{nombre_archivo_txt}' ha sido guardado.")
+        else:
+            print("---- Usuario no encontrado ----")
+
+    def inicializar_factura(self):
+        sistema_facturacion = SistemaFacturacion()
+
+        while True:
+            print("\n---- Menú ----")
+            print("1. Registrar Usuario")
+            print("2. Generar Factura")
+            print("3. Salir")
+
+            opcion = input("Seleccione una opción: ")
+
+            if opcion == "1":
+                sistema_facturacion.registrar_usuario()
+            elif opcion == "2":
+                correo_usuario = input("Ingrese el correo electrónico del usuario: ")
+                total = float(input("Ingrese el monto total de la factura: "))
+                sistema_facturacion.generar_factura(correo_usuario, total)
+            elif opcion == "3":
+                print("------- FIN DE LA EJECUCION --------")
+                break
+            else:
+                print("Opción no válida, seleccione una opción válida del menú.")
+
+def menu_principal():
+    menu = Menus()
+    pedidos = Pedidos()
+    sistema_facturacion = SistemaFacturacion()
+
+    menu.menus_iniciales()
+
+    while True:
+        print("\n---- Menú Principal ----")
+        print("1. Menús del Restaurante")
+        print("2. Pedidos")
+        print("3. Inicio de Sesion")
+        print("4. Salir")
+        opcion = input("Seleccione una opción: ")
+        match opcion:
+            case '1':
+                menu.mostrar_menu()
+            case '2':
+                pedidos.mostrar_pedidos()
+            case '3':
+                usuario = input("Ingrese su usuario: ")
+                contra = input("Ingrese su contraseña: ")
+                while usuario == "admin" and contra == "admin":
+                    print("BIENVENIDO AL MENU DE ADMINISTRADOR")
+                    print("1. Ver opciones de Menus")
+                    print("2. Ver opciones de Pedidos")
+                    print("3. Ver opciones de Facturacion")
+                    print("4. Salir")
                     opcion = input("Seleccione una opcion: ")
                     match opcion:
                         case '1':
-                            menu.inicializar()
+                            while True:
+                                print("\n---- Menús del Restaurante ----")
+                                print("1. Ingresar menú")
+                                print("2. Mostrar menús")
+                                print("3. Eliminar menú")
+                                print("4. Volver al menú principal")
+                                opcion_menu = input("Seleccione una opcion: ")
+                                match opcion_menu:
+                                    case '1':
+                                        nombre = input("Ingrese el nombre del combo: ")
+                                        complementos = input("Ingrese el complemento del menú: ")
+                                        precio = float(input("Ingrese el precio del menú: "))
+                                        menu.ingresar_menu(nombre, complementos, precio)
+                                    case '2':
+                                        menu.mostrar_menu()
+                                    case '3':
+                                        indice = int(input("Ingrese el menú que desea eliminar: "))
+                                        menu.eliminar_menu(indice)
+                                    case '4':
+                                        print("Regresando al menu principal...")
+                                        sleep(2)
+                                        break
+                                    case _:
+                                        print("No ingreso una opcion valida!")
+                                        sleep(1)
+                                        system("cls")
                         case '2':
-                            pedido1.inicializar_pedidos()
+                            while True:
+                                print("\n---- Pedidos ----")
+                                print("1. Ingreso de pedido")
+                                print("2. Orden en preparacion")
+                                print("3. Orden a listos para entregar")
+                                print("4. Ver pedidos")
+                                print("5. Buscar pedido por nombre")
+                                print("6. Volver al menu principal")
+                                opcion_pedidos = input("Seleccione una opcion: ")
+                                match opcion_pedidos:
+                                    case '1':
+                                        combo = input("Ingrese el combo que desea: ")
+                                        nombre = input("Ingrese su nombre para la entrega: ")
+                                        pedidos.ingreso_pedido(combo, nombre)
+                                    case '2':
+                                        pedidos.en_preparacion()
+                                    case '3':
+                                        pedidos.listo_servir()
+                                    case '4':
+                                        pedidos.mostrar_pedidos()
+                                    case '5':
+                                        nombre_buscar = input("Ingrese el nombre para buscar el pedido: ")
+                                        pedidos.buscar_pedido(nombre_buscar)
+                                    case '6':
+                                        print("Regresando al menu principal...")
+                                        sleep(2)
+                                        break
+                                    case _:
+                                        print("No ingreso una opcion valida!")
+                                        sleep(1)
+                                        system("cls")
                         case '3':
-                            print("Saliendo del menu de administrador...")
-                            break
-                        case _:
-                            print("No ingreso una opcion valida!")
-            else:
-                print("Usuario y/o contraseña incorrectos")
+                            while True:
+                                print("\n---- Facturación ----")
+                                print("1. Registrar Usuario")
+                                print("2. Generar Factura")
+                                print("3. Volver al menu principal")
+                                opcion_facturacion = input("Seleccione una opcion: ")
+                                match opcion_facturacion:
+                                    case '1':
+                                        sistema_facturacion.registrar_usuario()
+                                    case '2':
+                                        correo_usuario = input("Ingrese el correo electronico del usuario: ")
+                                        total = float(input("Ingrese el monto total de la factura: "))
+                                        sistema_facturacion.generar_factura(correo_usuario, total)
+                                    case '3':
+                                        print("Regresando al menu principal...")
+                                        sleep(2)
+                                        break
+                                    case _:
+                                        print("No ingreso una opcion valida!")
+                                        sleep(1)
+                                        system("cls")
+                else:
+                    print("Usuario y/o contraseña incorrectos")
+                    sleep(2)
+            case '4':
+                print("Gracias por usar el programa!")
+                print("Saliendo...")
                 sleep(2)
-                system("cls")
-        case '5':
-            print("Gracias por usar el programa del restaurante!")
-            print("Saliendo...")
-            bandera = 1
-        case _:
-            print("No ingreso una opcion valida")
+                break
+            case _:
+                print("No ingreso una opcion valida!")
+if __name__ == "__main__":
+    menu_principal()
